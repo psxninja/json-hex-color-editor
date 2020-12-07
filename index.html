@@ -747,7 +747,12 @@ HERE DO THE MAGIC JSON TO CSS
 			style = document.createElement("style");
 			for (let color in colors) {
 				let line = document.createTextNode(
-					"label.skuespec_" + color + "{background:" + colors[color] + "}"
+					'.ESTAMPAS \u003E li \u003E a[title="' + color + '"]' +
+					'{' + (
+						colors[color].substring(0, 1) === '#'
+							? 'background:' + colors[color]
+							: 'background-image:url(' + colors[color] + ')'
+					) + '}'
 				);
 				style.appendChild(line)
 			}
