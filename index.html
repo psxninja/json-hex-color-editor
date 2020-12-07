@@ -148,7 +148,8 @@ button, .colorPreview {
 	border-radius: 50%;
 }
 .colorPreview {
-	border:2px solid #c3c3c3;
+	background-size: 100%;
+	border: 2px solid #c3c3c3;
 }
 input[type="range"] {
 	position: relative;
@@ -183,10 +184,33 @@ input[type="range"]::after {
 	font-weight: 600;
 }
 .rgbarea {
+	display: flex;
+	flex-wrap: wrap;
 	width: 100%;
 	margin: 10px 0;
-	float: left;
 	text-align: center;
+}
+.seeColor {
+	display: inline-block;
+	position: relative;
+	width: 100px;
+	height: 100px;
+	margin: 0 auto;
+	overflow: hidden;
+	border: 1px solid #ccc;
+	transition: background .2s linear;
+	background-size: 100%;
+}
+.rgbarea__div {
+	width: 50%;
+	text-align: center;
+}
+.rgbarea__div--01 {
+	width: 50%;
+}
+.rgbarea__div--01 {
+	display: flex;
+    flex-direction: column;
 }
 .preview input {
 	border: 1px solid #ccc;
@@ -228,16 +252,6 @@ input[type="range"]::after {
 	height: 100%;
 }
 #cs {display: none;}
-.seeColor {
-	display: inline-block;
-	position: relative;
-	width: 50%;
-	height: 100px;
-	margin: 0 10px 0 0;
-	overflow: hidden;
-	border: 1px solid #ccc;
-	transition: background .2s linear;
-}
 footer {
 	color: transparent;
 }
@@ -289,12 +303,21 @@ footer {
 					<canvas id="cs"></canvas>
 				</div>
 				<div class="rgbarea">
-					<div class="seeColor"></div>
-					<input id="colorR" type="range" min="0" max="255" value="0" data-type="R: " data-value="0">
-					<input id="colorG" type="range" min="0" max="255" value="0" data-type="G: " data-value="0">
-					<input id="colorB" type="range" min="0" max="255" value="0" data-type="B: " data-value="0">
+					<div class="rgbarea__div rgbarea__div--01">
+						<div class="seeColor"></div>
+					</div>
+					<div class="rgbarea__div rgbarea__div--02">
+						<input id="colorR" type="range" min="0" max="255" value="0" data-type="R: " data-value="0">
+						<input id="colorG" type="range" min="0" max="255" value="0" data-type="G: " data-value="0">
+						<input id="colorB" type="range" min="0" max="255" value="0" data-type="B: " data-value="0">
+					</div>
+					<div class="rgbarea__div rgbarea__div--03">
+						<input id="colorNAME" type="text" value="" placeholder="Nome">
+					</div>
+					<div class="rgbarea__div rgbarea__div--04">
+						<input id="colorREX" type="text" value="" placeholder="#096">
+					</div>
 				</div>
-				<input id="colorNAME" type="text" placeholder="Nome"><input id="colorREX" type="text" value="" placeholder="#096">
 			</td>
 		</tr>
 	</table>
@@ -312,18 +335,21 @@ footer {
 /*
 Author: Pablo Santos - https://github.com/psxninja
 Created: October 30, 2018
+Version: 1.4.1
 Modified: April 22, 2019
 Modified: December 07, 2020
 */
-var $ = function(el){return document.querySelector(el)},
-$$ = function(el){return document.querySelectorAll(el)},
+var $ = function(el) { return document.querySelector(el) },
+$$ = function(el) { return document.querySelectorAll(el) },
 hexcolors = [],
-hexcolor= '',
-totalcolors=0,
+hexcolor = '',
+totalcolors = 0,
 initiated = 0,
 img = $('.thumbnail img'),
 canvas = $('#cs'),
-result = $('.result'),x = '',y = '';
+result = $('.result'),
+x = '',
+y = '';
 
 /* Prototypes */
 HTMLElement.prototype.trigger = function(event){
@@ -331,71 +357,115 @@ HTMLElement.prototype.trigger = function(event){
 		'bubbles': true,
 		'cancelable': false
 	});
+
 	this.dispatchEvent(evt);
+
 	return this;
 };
 
 var pabloJHC = {
 	rgb2hex: function(rgb) {
-		var rgb = rgb[2] | (rgb[1] << 8) | (rgb[0] << 16);
+		let rgb = rgb[2] | (rgb[1] << 8) | (rgb[0] << 16);
+
 		return '#' + (0x1000000 + rgb).toString(16).slice(1);
 	},
 	hex2rgb: function(hex) {
-		/* long version */
-		r = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-		if(r) {
+		/* long version #000000 */
+		let r = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+
+		if (r) {
 			return r.slice(1,4).map(function(x) { return parseInt(x, 16); });
 		}
-		/* short version */
+
+		/* short version #000 */
 		r = hex.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
-		if(r) {
+
+		if (r) {
 			return r.slice(1,4).map(function(x) { return 0x11 * parseInt(x, 16); });
 		}
 		return null;
 	},
-	loadPreviewColor: function(hex,preview) {
+	loadPreviewColor: function(hex, preview) {
 		let rgb = pabloJHC.hex2rgb(hex);
 		let nrgb = 0;
-		try{
+
+		try {
 			nrgb = rgb.join(',');
-		}catch(e) {
+		} catch(e) {
 			return;
 		}
-		if(!nrgb)return;
+
+		if (!nrgb) return;
+
 		$('.seeColor').setAttribute('style', 'background:rgb('+nrgb+')');
-		if(preview)return false;
+
+		if (preview) return false;
+
 		$('#colorREX').value = hex;
 
 		let id = $('.preview').getAttribute('data-id');
+
 		$$('input[type="range"]').forEach(function(el,i){
 			el.value = rgb[i];
 			el.setAttribute('data-value', rgb[i]);
 		});
-		$('.editablehex tr[data-id="'+id+'"]').querySelector('.hex').value = hex;
-		$('.editablehex tr[data-id="'+id+'"]').querySelector('.colorPreview').setAttribute('style', 'background:'+hex);
+		$('.editablehex tr[data-id="' + id + '"]')
+			.querySelector('.hex').value = hex;
+		$('.editablehex tr[data-id="' + id + '"]')
+			.querySelector('.colorPreview')
+			.setAttribute('style', 'background:' + hex);
+	},
+	loadPreviewImg: function(img, preview) {
+		let id = $('.preview').getAttribute('data-id');
+
+		$('.seeColor').setAttribute('style', 'background-image: url(' + img + ')');
+		/* if (preview)return false; */
+
+		$$('input[type="range"]').forEach(function(el,i) {
+			el.value = 0;
+			el.setAttribute('data-value', 0);
+		});
+		$('.editablehex tr[data-id="'+id+'"]').querySelector('.hex').value = img;
+		$('.editablehex tr[data-id="'+id+'"]')
+			.querySelector('.colorPreview')
+			.setAttribute('style', 'background-image: url(' + img + ')');
 	},
 	setPreviewColor: function() {
 		let id = $('.preview').getAttribute('data-id');
-		if(!$('.editablehex tr[data-id="'+id+'"]'))return alert('Selecione uma cor para modifica-la.');
+
+		if (!$('.editablehex tr[data-id="' + id + '"]'))
+			return alert('Selecione uma cor para modifica-la.');
+
 		let rgb = [];
-		$$('input[type="range"]').forEach(function(el,i){
+		$$('input[type="range"]').forEach(function(el,i) {
 			rgb.push(el.value);
 		});
+
 		let hex = pabloJHC.rgb2hex(rgb);
-		$('.seeColor').setAttribute('style', 'background:rgb('+rgb.join(',')+')');
+
+		$('.seeColor').setAttribute('style', 'background:rgb(' + rgb.join(',') + ')');
 		$('#colorREX').value = hex;
-		$('.editablehex tr[data-id="'+id+'"]').querySelector('.hex').value = hex;
-		$('.editablehex tr[data-id="'+id+'"]').querySelector('.colorPreview').setAttribute('style', 'background:'+hex);
+		$('.editablehex tr[data-id="' + id + '"]').querySelector('.hex').value = hex;
+		$('.editablehex tr[data-id="' + id + '"]')
+			.querySelector('.colorPreview')
+			.setAttribute('style', 'background:' + hex);
 	},
 	addColor: function() {
 		let createID;
-		try{
-			if($('.editablehex tr:last-child').querySelector('.name').value=='')return alert("Todas as cores devem ter nome\npara adicionar outra!");
+		let areaCores = $('.editablehex');
+
+		try {
+			if ($('.editablehex tr:last-child').querySelector('.name').value == '')
+				return alert(
+					"Todas as cores devem ter nome\npara adicionar outra!\n\n" +
+					"All color must have a name\nto add another color!"
+				);
 			createID = (+$('.editablehex tr:last-child').dataset.id);
 		}
-		catch(e){
+		catch (e) {
 			createID = 0;
 		}
+
 		let tr = document.createElement('tr');
 		tr.dataset.id = (createID + 1);
 		let td = tr.appendChild(document.createElement('td'));
@@ -405,25 +475,30 @@ var pabloJHC = {
 							'<button class="remove">X</button>'
 		td.innerHTML = newHTML;
 		$('.editablehex tbody').appendChild(tr);
-		let areaCores = $('.editablehex');
+		
+
 		areaCores.scrollTop = (areaCores.scrollHeight - areaCores.clientHeight );
 		$('.editablehex tr:last-child input.name').trigger('click').focus();
-		totalcolors = (+totalcolors+1);
-		$('.colors span').setAttribute('data-total',totalcolors);
+		totalcolors = (+totalcolors + 1);
+		$('.colors span').setAttribute('data-total', totalcolors);
 	},
 	generateCode: function(callback) {
 		let newJSON = [];
-		$$('.editablehex tr').forEach(function(el,i){
+
+		$$('.editablehex tr').forEach(function(el,i) {
 			let name = el.querySelector('.name').value;
 			let hex = el.querySelector('.hex').value;
-			if(name==''){
+			if (name == '') {
 				newJSON = 0;
-				return callback("Todas as cores devem ter um nome!");
+				return callback("Todas as cores devem ter um nome!\nAll colors must have a name!");
 			}
-			newJSON.push('"'+name+'":"'+hex+'"');
+			newJSON.push('"' + name + '":"' + hex + '"');
 		});
-		if(!newJSON)return;
-		newJSON = '{'+newJSON.join(',')+'}';
+
+		if (!newJSON) return;
+
+		newJSON = '{' + newJSON.join(',') + '}';
+
 		$('.code').value = newJSON;
 		$('.preview').removeAttribute('data-id');
 		$('.pag1').classList.add('codedone');
@@ -432,34 +507,39 @@ var pabloJHC = {
 		el.width = image.width;
 		el.height = image.height; 
 		el.getContext('2d').drawImage(image, 0, 0, image.width, image.height);
+
 		return callback();
 	},
 	init: function(callback) {
-		try{
+		try {
 			hexcolor = JSON.parse($('.code').value);
-		}catch(e){
+		} catch(e) {
 			hexcolor = 0;
-			if($('.code').value.length){
+			if ($('.code').value.length) {
 				hexcolor = null;
-				return callback("JSON possue erros ;(\n\n"+e);
+				return callback("JSON possue erros ;(\nJSON have errors;(\n\n" + e);
 			}
 		}
-		if(hexcolor==null)return;
+
+		if (hexcolor == null) return;
+
 		$('.editablehex tbody').innerHTML = '';
-		if(hexcolor){
+
+		if (hexcolor) {
 			totalcolors = Object.keys(hexcolor).length;
 			let editable = '';
-			let i=0;
-			$('.colors span').setAttribute('data-total',totalcolors);
-			for(let index in hexcolor){
+			let i = 0;
+			$('.colors span').setAttribute('data-total', totalcolors);
+			for (let index in hexcolor){
 				i++;
-				editable += '<tr data-id="'+i+'"><td><input type="text" value="'+index+'" placeholder="Nome"  class="name">'+
-							'<input type="text" class="hex" value="'+hexcolor[index]+'">'+
-							'<input type="button" class="colorPreview" style="background:'+hexcolor[index]+'" >'+
+				let hexColorOrImg = hexcolor[index];
+				editable += '<tr data-id="' + i + '"><td><input type="text" value="' + index + '" placeholder="Nome"  class="name">'+
+							'<input type="text" class="hex" value="' + hexColorOrImg + '">'+
+							'<input type="button" class="colorPreview" style="' + (hexColorOrImg.substring(0, 1) === '#' ? 'background:' + hexColorOrImg : 'background-image:url(' + hexColorOrImg + ')') + '" >'+
 							'<button class="remove">X</button></td></tr>';
 			}
 			$('.editablehex tbody').innerHTML += editable;
-		}else{
+		} else {
 			let editable = '';
 				editable += '<tr data-id="1"><td><input type="text" value="" placeholder="Nome" class="name">'+
 							'<input type="text" class="hex" value="#000000">'+
@@ -467,18 +547,21 @@ var pabloJHC = {
 							'<button class="remove">X</button></td></tr>';
 			$('.editablehex tbody').innerHTML += editable;
 		}
-		if(initiated)return;
-		initiated=1;
+
+		if (initiated) return;
+
+		initiated = 1;
+
 		$('.editablehex').addEventListener('click', function(e) {
 			let targetElement = event.target || event.srcElement;
 			let _this = targetElement.parentNode.parentNode;
 
-			if(!_this.dataset.id)return;
+			if (!_this.dataset.id) return;
 
-			if(targetElement.classList.contains('remove')){
+			if (targetElement.classList.contains('remove')) {
 				if(_this.classList.contains('active'))
 					$('.preview').removeAttribute('data-id');
-				totalcolors = (+totalcolors-1);
+				totalcolors = (+totalcolors - 1);
 				$('.colors span').setAttribute('data-total',totalcolors);
 				return _this.parentNode.removeChild(_this);
 			}
@@ -490,38 +573,53 @@ var pabloJHC = {
 			
 			let id = _this.getAttribute('data-id');
 			let name = _this.querySelector('.name').value.trim();
-			let hex = _this.querySelector('.hex').value.trim();
+			let colorOrImg = _this.querySelector('.hex').value.trim();
+
 			$('.preview').setAttribute('data-id', id);
 			$('#colorNAME').value = name;
-			pabloJHC.loadPreviewColor(hex);
+			$('#colorREX').value = colorOrImg;
 
-			_this.querySelector('.name').addEventListener('keyup',function(e){
+			if (colorOrImg.substring(0, 1) === '#') {
+				pabloJHC.loadPreviewColor(colorOrImg);
+			} else {
+				pabloJHC.loadPreviewImg(colorOrImg);
+			}
+
+			_this.querySelector('.name').addEventListener('keyup', function(e) {
 				$('#colorNAME').value = this.value.trim();
-			},false);
+			}, false);
 
-			_this.querySelector('.hex').addEventListener('keyup',function(e){
-				let color = this.value.trim();
-				this.value = color;
-				$('#colorREX').value = color;
-				pabloJHC.loadPreviewColor(color);
-			},false);
+			_this.querySelector('.hex').addEventListener('keyup', function(e) {
+				let _colorOrImg = this.value.trim();
+				this.value = colorOrImg;
+				e.target.value = colorOrImg;
 
-		},false);
-		img.addEventListener('mousemove', function(e){
+				$('#colorREX').value = _colorOrImg;
+
+				if (_colorOrImg.substring(0, 1) === '#') {
+					pabloJHC.loadPreviewColor(_colorOrImg);
+				} else {
+					pabloJHC.loadPreviewImg(_colorOrImg);
+				}
+			}, false);
+
+		}, false);
+		img.addEventListener('mousemove', function(e) {
 			if(e.offsetX){
 				x = e.offsetX;
 				y = e.offsetY; 
-			}
-			else if(e.layerX){
+			} else if (e.layerX) {
 				x = e.layerX;
 				y = e.layerY;
 			}
-			pabloJHC.useCanvas(canvas,img,function(){
+
+			pabloJHC.useCanvas(canvas, img, function() {
 				let rgb = canvas.getContext('2d').getImageData(x, y, 1, 1).data;
-				pabloJHC.loadPreviewColor(pabloJHC.rgb2hex(rgb),1);
+
+				pabloJHC.loadPreviewColor(pabloJHC.rgb2hex(rgb), true);
 			});
-		},false);
-		img.addEventListener('click', function(e){
+		}, false);
+		img.addEventListener('click', function(e) {
 			if(e.offsetX){
 				x = e.offsetX;
 				y = e.offsetY; 
@@ -530,75 +628,91 @@ var pabloJHC = {
 				x = e.layerX;
 				y = e.layerY;
 			}
-			pabloJHC.useCanvas(canvas,img,function(){
+
+			pabloJHC.useCanvas(canvas, img ,function() {
 				let rgb = canvas.getContext('2d').getImageData(x, y, 1, 1).data;
+
 				pabloJHC.loadPreviewColor(pabloJHC.rgb2hex(rgb));
 
 			});
-		},false);
+		}, false);
 	}
 }
-$('.pickColor').addEventListener('click',function(e){
+$('.pickColor').addEventListener('click', function(e) {
 	let pick = this.dataset.pick;
-	if(pick=='yes'){
+
+	if (pick == 'yes') {
 		this.dataset.pick = '';
-	}else{
+	} else {
 		this.dataset.pick = 'yes';
 	}
-},false);
+}, false);
 
-$('.pickColor').addEventListener('mouseleave',function(e){
+$('.pickColor').addEventListener('mouseleave', function(e) {
 	let id = $('.preview').getAttribute('data-id');
-	let currentColor = $('.editablehex tr[data-id="'+id+'"] .hex').value;
-	pabloJHC.loadPreviewColor(currentColor);
+	let currentColorOrImg = $('.editablehex tr[data-id="' + id + '"] .hex').value;
+
+	if (currentColorOrImg.substring(0, 1) === '#') {
+		pabloJHC.loadPreviewColor(currentColorOrImg);
+	} else {
+		pabloJHC.loadPreviewImg(currentColorOrImg);
+	}
+
 	$('.pickColor').dataset.pick = 'yes';
-},false);
+}, false);
 
-$('#colorNAME').addEventListener('keyup',function(e){
+$('#colorNAME').addEventListener('keyup', function(e) {
 	let id = $('.preview').getAttribute('data-id');
-	$('.editablehex tr[data-id="'+id+'"] .name').value = this.value;
-},false);
 
-$('#colorNAME').addEventListener('click',function(e){
+	$('.editablehex tr[data-id="' + id + '"] .name').value = this.value;
+}, false);
+
+$('#colorNAME').addEventListener('click', function(e) {
 	let id = $('.preview').getAttribute('data-id');
-	this.value = $('.editablehex tr[data-id="'+id+'"] .name').value;
-},false);
+	this.value = $('.editablehex tr[data-id="' + id + '"] .name').value;
+}, false);
 
-$('#colorREX').addEventListener('keyup',function(e){
+$('#colorREX').addEventListener('keyup', function(e) {
 	/*if(this.value.length!==7)return;*/
-	pabloJHC.loadPreviewColor(this.value);
-},false);
+	let colorOrImg = this.value;
 
-$('#colorREX').addEventListener('click',function(e){
-	pabloJHC.loadPreviewColor(this.value);
-},false);
+	if (colorOrImg.substring(0, 1) === '#') {
+		pabloJHC.loadPreviewColor(colorOrImg);
+	} else {
+		pabloJHC.loadPreviewImg(colorOrImg);
+	}
+}, false);
 
-$$('input[type="range"]').forEach(function(el,i){
-	el.addEventListener('input',function(e){
+$('#colorREX').addEventListener('click', function(e) {
+	pabloJHC.loadPreviewColor(this.value);
+}, false);
+
+$$('input[type="range"]').forEach(function(el,i) {
+	el.addEventListener('input', function(e) {
 		this.setAttribute('data-value',this.value);
 		pabloJHC.setPreviewColor();
-	},false);
+	}, false);
 });
 
-$('label.add').addEventListener('click',function(e){
+$('label.add').addEventListener('click', function(e) {
 	pabloJHC.addColor();
-},false);
+}, false);
 
-$('label[for="pag2"]').addEventListener('click',function(e){
-	pabloJHC.init(function(msg){
+$('label[for="pag2"]').addEventListener('click', function(e) {
+	pabloJHC.init(function(msg) {
 		e.preventDefault();
 		e.stopPropagation();
 		alert(msg);
 	});
-},false);
+}, false);
 
-$('label[for="pag1"]').addEventListener('click',function(e){
-	pabloJHC.generateCode(function(msg){
+$('label[for="pag1"]').addEventListener('click', function(e) {
+	pabloJHC.generateCode(function(msg) {
 		e.preventDefault();
 		e.stopPropagation();
 		alert(msg);
 	});
-},false);
+}, false);
 
 /*
 
@@ -606,20 +720,22 @@ ESSE AQUI FAZ A MAGIA PRO JSON FUNCIONAR COMO CSS
 HERE DO THE MAGIC JSON TO CSS
 
 <script class="hexcolor">
-	var hexcolor= <vtex.cmc:hexcolor/>;
+	var hexcolor = <vtex.cmc:hexcolor/>;
 	(function(b){
 		try{
-			let colors=JSON.parse(JSON.stringify(b)),
-			div=document.querySelector(".hexcolor"),
-			style=document.createElement("style");
-			for(let color in colors){
-				let line=document.createTextNode("label.skuespec_"+color+"{background:"+colors[color]+"}");
+			let colors = JSON.parse(JSON.stringify(b)),
+			div = document.querySelector(".hexcolor"),
+			style = document.createElement("style");
+			for (let color in colors) {
+				let line = document.createTextNode(
+					"label.skuespec_" + color + "{background:" + colors[color] + "}"
+				);
 				style.appendChild(line)
 			}
 			document.querySelector("body").appendChild(style),
 			div.parentNode.removeChild(div)
-		}catch(err){
-			console.log("Erro no JSON das cores.")
+		} catch(err) {
+			console.log("Erro no JSON das cores.\nError in JSON colors")
 		}
 	})(hexcolor);
 */
