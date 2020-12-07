@@ -364,8 +364,8 @@ HTMLElement.prototype.trigger = function(event){
 };
 
 var pabloJHC = {
-	rgb2hex: function(rgb) {
-		let rgb = rgb[2] | (rgb[1] << 8) | (rgb[0] << 16);
+	rgb2hex: function(_rgb) {
+		let rgb = _rgb[2] | (_rgb[1] << 8) | (_rgb[0] << 16);
 
 		return '#' + (0x1000000 + rgb).toString(16).slice(1);
 	},
